@@ -12,8 +12,8 @@ tricycle_steering_controller:
   ros__parameters:
     wheelbase: 0.171
     wheel_track: 0.168
-    front_wheels_radius: 0.0368
-    rear_wheels_radius: 0.0368
+    front_wheels_radius: 0.034
+    rear_wheels_radius: 0.034
     front_steering: true
     reference_timeout: 2.0
     rear_wheels_names: ["rear_left_wheel_joint", "rear_right_wheel_joint"]

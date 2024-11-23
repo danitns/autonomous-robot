@@ -34,7 +34,7 @@
     <xacro:property name="chassis_to_back_wheels_distance" value="0.048" />
     <xacro:property name="chassis_mass" value="1.1" />
     <xacro:property name="wheel_track" value="0.168" />
-    <xacro:property name="wheel_radius" value="0.0368" />
+    <xacro:property name="wheel_radius" value="0.034" />
     <xacro:property name="wheel_length" value="0.0295" />
     <xacro:property name="wheel_mass" value="0.05" />
     <xacro:property name="wheel_base" value="0.171" />
