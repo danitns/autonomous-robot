@@ -2,8 +2,9 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
     <ros2_control name="RealRobot" type="system">
         <hardware>
-            <plugin>tricycle_arduino/TricycleArduinoHardware</plugin>
-            <param name="front_wheel_name">virtual_front_wheel_joint</param>
+            <plugin>ackermann_arduino/AckermannArduinoHardware</plugin>
+            <param name="front_left_wheel_name">front_left_wheel_joint</param>
+            <param name="front_right_wheel_name">front_right_wheel_joint</param>
             <param name="rear_left_wheel_name">rear_left_wheel_joint</param>
             <param name="rear_right_wheel_name">rear_right_wheel_joint</param>
             <param name="loop_rate">30</param>
@@ -12,7 +13,11 @@
             <param name="timeout_ms">1000</param>
             <param name="enc_counts_per_rev">1320</param>
         </hardware>
-        <joint name="virtual_front_wheel_joint">
+        <joint name="front_left_wheel_joint">
+            <command_interface name="position" />
+            <state_interface name="position" />
+        </joint>
+        <joint name="front_right_wheel_joint">
             <command_interface name="position" />
             <state_interface name="position" />
         </joint>

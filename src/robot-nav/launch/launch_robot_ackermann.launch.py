@@ -11,14 +11,14 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     package_name='robot-nav'
     # Declare arguments
-    # declared_arguments = []
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         "gui",
-    #         default_value="true",
-    #         description="Start RViz2 automatically with this launch file.",
-    #     )
-    # )
+    declared_arguments = []
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "gui",
+            default_value="true",
+            description="Start RViz2 automatically with this launch file.",
+        )
+    )
     # declared_arguments.append(
     #     DeclareLaunchArgument(
     #         "remap_odometry_tf",
@@ -28,7 +28,7 @@ def generate_launch_description():
     # )
 
     # Initialize Arguments
-    # gui = LaunchConfiguration("gui")
+    gui = LaunchConfiguration("gui")
     # remap_odometry_tf = LaunchConfiguration("remap_odometry_tf")
 
     # Get URDF via xacro
@@ -47,16 +47,16 @@ def generate_launch_description():
         [
             FindPackageShare(package_name),
             "config",
-            "tricycle_controller.yaml",
+            "ackermann_controller.yaml",
         ]
     )
-    # rviz_config_file = PathJoinSubstitution(
-    #     [
-    #         FindPackageShare(package_name),
-    #         "rviz",
-    #         "carlikebot.rviz",
-    #     ]
-    # )
+    rviz_config_file = PathJoinSubstitution(
+        [
+            FindPackageShare(package_name),
+            "config",
+            "view_bot.rviz",
+        ]
+    )
 
     # the steering controller libraries by default publish odometry on a separate topic than /tf
     control_node_remapped = Node(
@@ -66,7 +66,7 @@ def generate_launch_description():
         output="both",
         remappings=[
             ("~/robot_description", "/robot_description"),
-            ("/tricycle_steering_controller/tf_odometry", "/tf"),
+            ("/ackermann_steering_controller/tf_odometry", "/tf"),
         ],
     )
     # control_node = Node(
@@ -79,20 +79,20 @@ def generate_launch_description():
     #     ],
     #     condition=UnlessCondition(remap_odometry_tf),
     # )
-    robot_state_pub_tricycle_node = Node(
+    robot_state_pub_ackermann_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="both",
         parameters=[robot_description],
     )
-    # rviz_node = Node(
-    #     package="rviz2",
-    #     executable="rviz2",
-    #     name="rviz2",
-    #     output="log",
-    #     arguments=["-d", rviz_config_file],
-    #     condition=IfCondition(gui),
-    # )
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        name="rviz2",
+        output="log",
+        arguments=["-d", rviz_config_file],
+        condition=IfCondition(gui),
+    )
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
@@ -100,25 +100,25 @@ def generate_launch_description():
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
-    robot_tricycle_controller_spawner = Node(
+    robot_ackermann_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["tricycle_steering_controller", "--controller-manager", "/controller_manager"],
+        arguments=["ackermann_steering_controller", "--controller-manager", "/controller_manager"],
     )
 
     # Delay rviz start after `joint_state_broadcaster`
-    # delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
-    #     event_handler=OnProcessExit(
-    #         target_action=joint_state_broadcaster_spawner,
-    #         on_exit=[rviz_node],
-    #     )
-    # )
+    delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[rviz_node],
+        )
+    )
 
     # Delay start of joint_state_broadcaster after `robot_controller`
     # TODO(anyone): This is a workaround for flaky tests. Remove when fixed.
     delay_joint_state_broadcaster_after_robot_controller_spawner = RegisterEventHandler(
         event_handler=OnProcessExit(
-            target_action=robot_tricycle_controller_spawner,
+            target_action=robot_ackermann_controller_spawner,
             on_exit=[joint_state_broadcaster_spawner],
         )
     )
@@ -126,10 +126,10 @@ def generate_launch_description():
     nodes = [
         #control_node,
         control_node_remapped,
-        robot_state_pub_tricycle_node,
-        robot_tricycle_controller_spawner,
+        robot_state_pub_ackermann_node,
+        robot_ackermann_controller_spawner,
         delay_joint_state_broadcaster_after_robot_controller_spawner,
-        #delay_rviz_after_joint_state_broadcaster_spawner,
+        delay_rviz_after_joint_state_broadcaster_spawner,
     ]
 
-    return LaunchDescription(nodes)
+    return LaunchDescription(declared_arguments + nodes)

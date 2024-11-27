@@ -4,7 +4,6 @@
 
 /.vscode/
 
-/src/diffdrive_arduino/
-/src/serial/
 /src/ydlidar_ros2_driver/
 /maps/
+/src/twist_stamper
