@@ -22,15 +22,15 @@ def generate_launch_description():
             executable='teleop_node',
             name='teleop_node',
             parameters=[joy_params],
-            #remappings=[('/cmd_vel','/cmd_vel_joy')]
+            remappings=[('/cmd_vel','/cmd_vel_joy')]
          )
 
     twist_stamper = Node(
             package='twist_stamper',
             executable='twist_stamper',
             #parameters=[{'use_sim_time': use_sim_time}],
-            remappings=[('/cmd_vel_in','/cmd_vel'),
-                        ('/cmd_vel_out','/ackermann_steering_controller/reference')]
+            remappings=[('/cmd_vel_in','/cmd_vel_joy'),
+                        ('/cmd_vel_out','/cmd_vel_joy_stamped')]
          )
 
 
