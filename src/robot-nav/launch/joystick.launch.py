@@ -29,8 +29,8 @@ def generate_launch_description():
             package='twist_stamper',
             executable='twist_stamper',
             #parameters=[{'use_sim_time': use_sim_time}],
-            remappings=[('/cmd_vel_in','/cmd_vel_joy'),
-                        ('/cmd_vel_out','/cmd_vel_joy_stamped')]
+            remappings=[('/cmd_vel_in','/cmd_vel_out'),
+                        ('/cmd_vel_out','/ackermann_steering_controller/reference')]
          )
 
 
