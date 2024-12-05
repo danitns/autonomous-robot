@@ -32,6 +32,13 @@ def generate_launch_description():
             remappings=[('/cmd_vel_in','/cmd_vel_out'),
                         ('/cmd_vel_out','/ackermann_steering_controller/reference')]
          )
+    
+    twist_mux_params = os.path.join(get_package_share_directory("robot-nav"), "config", "twist_mux.yaml")
+    twist_mux = Node(
+            package='twist_mux',
+            executable='twist_mux',
+            parameters=[twist_mux_params]
+        )   
 
 
     return LaunchDescription([
@@ -41,5 +48,6 @@ def generate_launch_description():
             description='Use sim time if true'),
         joy_node,
         teleop_node,
-        twist_stamper       
+        twist_stamper,
+        twist_mux
     ])
