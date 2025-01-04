@@ -7,3 +7,5 @@
 /src/ydlidar_ros2_driver/
 /maps/
 /src/twist_stamper
+/ydlidar_ros2_driver
+/pi-env

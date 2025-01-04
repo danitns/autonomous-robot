@@ -10,6 +10,10 @@ sudo apt install ros-humble-navigation2
 sudo apt install ros-humble-nav2-bringup
 sudo apt install ros-humble-turtlebot3-gazebo
 sudo apt install ros-humble-twist-mux
+sudo apt install ros-humble-robot-localization
+
+pip3 install adafruit-circuitpython-lsm9ds1
+pip3 install RPi.GPIO
 
 
 
