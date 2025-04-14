@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 6 # Hz
+    update_rate: 21 # Hz
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -23,7 +23,7 @@ ackermann_steering_controller:
     velocity_rolling_window_size: 10
     base_frame_id: base_link
     odom_frame_id: odom
-    enable_odom_tf: true
+    enable_odom_tf: false
     twist_covariance_diagonal: [0.0, 7.0, 14.0, 21.0, 28.0, 35.0]
     pose_covariance_diagonal: [0.0, 7.0, 14.0, 21.0, 28.0, 35.0]
     position_feedback: true

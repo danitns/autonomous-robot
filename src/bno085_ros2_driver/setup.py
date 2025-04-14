@@ -3,7 +3,7 @@ import os
 from glob import glob
 
 
-package_name = 'lsm9ds1_ros2_driver'
+package_name = 'bno085_ros2_driver'
 
 setup(
     name=package_name,
@@ -23,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'imu_data_publisher = lsm9ds1_ros2_driver.imu_data_publisher:main',
+            'imu_data_publisher = bno085_ros2_driver.imu_data_publisher:main',
         ],
     },
 )

@@ -10,7 +10,7 @@ def generate_launch_description():
     robot_localization_params = os.path.join(get_package_share_directory('robot-nav'),'config','ekf.yaml')
 
     imu_node_raw = Node(
-            package='lsm9ds1_ros2_driver',
+            package='bno085_ros2_driver',
             executable='imu_data_publisher',
             parameters=[],
          )
