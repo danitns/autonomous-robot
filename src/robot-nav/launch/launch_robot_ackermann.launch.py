@@ -19,13 +19,6 @@ def generate_launch_description():
             description="Start RViz2 automatically with this launch file.",
         )
     )
-    # declared_arguments.append(
-    #     DeclareLaunchArgument(
-    #         "remap_odometry_tf",
-    #         default_value="false",
-    #         description="Remap odometry TF from the steering controller to the TF tree.",
-    #     )
-    # )
 
     # Initialize Arguments
     gui = LaunchConfiguration("gui")
@@ -50,13 +43,6 @@ def generate_launch_description():
             "ackermann_controller.yaml",
         ]
     )
-    rviz_config_file = PathJoinSubstitution(
-        [
-            FindPackageShare(package_name),
-            "config",
-            "view_bot.rviz",
-        ]
-    )
 
     # the steering controller libraries by default publish odometry on a separate topic than /tf
     control_node_remapped = Node(
@@ -69,29 +55,11 @@ def generate_launch_description():
             ("/ackermann_steering_controller/tf_odometry", "/tf"),
         ],
     )
-    # control_node = Node(
-    #     package="controller_manager",
-    #     executable="ros2_control_node",
-    #     parameters=[robot_controllers],
-    #     output="both",
-    #     remappings=[
-    #         ("~/robot_description", "/robot_description"),
-    #     ],
-    #     condition=UnlessCondition(remap_odometry_tf),
-    # )
     robot_state_pub_ackermann_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="both",
         parameters=[robot_description],
-    )
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        name="rviz2",
-        output="log",
-        arguments=["-d", rviz_config_file],
-        condition=IfCondition(gui),
     )
 
     joint_state_broadcaster_spawner = Node(
@@ -106,14 +74,6 @@ def generate_launch_description():
         arguments=["ackermann_steering_controller", "--controller-manager", "/controller_manager"],
     )
 
-    # Delay rviz start after `joint_state_broadcaster`
-    delay_rviz_after_joint_state_broadcaster_spawner = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=joint_state_broadcaster_spawner,
-            on_exit=[rviz_node],
-        )
-    )
-
     # Delay start of joint_state_broadcaster after `robot_controller`
     # TODO(anyone): This is a workaround for flaky tests. Remove when fixed.
     delay_joint_state_broadcaster_after_robot_controller_spawner = RegisterEventHandler(
@@ -124,12 +84,10 @@ def generate_launch_description():
     )
 
     nodes = [
-        #control_node,
         control_node_remapped,
         robot_state_pub_ackermann_node,
         robot_ackermann_controller_spawner,
-        delay_joint_state_broadcaster_after_robot_controller_spawner,
-        delay_rviz_after_joint_state_broadcaster_spawner,
+        delay_joint_state_broadcaster_after_robot_controller_spawner
     ]
 
     return LaunchDescription(declared_arguments + nodes)
