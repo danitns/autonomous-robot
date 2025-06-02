@@ -1,6 +1,6 @@
 amcl:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
@@ -14,8 +14,8 @@ amcl:
     global_frame_id: "map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 2.0
-    laser_max_range: 100.0
-    laser_min_range: -1.0
+    laser_max_range: 12.0
+    laser_min_range: 0.1
     laser_model_type: "likelihood_field"
     max_beams: 60
     max_particles: 2000
@@ -41,13 +41,15 @@ amcl:
 
 bt_navigator:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     global_frame: map
     robot_base_frame: base_link
-    odom_topic: /odom
+    odom_topic: ackermann_steering_controller/odometry #/odometry/filtered
     bt_loop_duration: 10
     default_server_timeout: 20
     wait_for_service_timeout: 1000
+    default_nav_to_pose_bt_xml: /home/danitns/Documents/dev_ws/src/robot-nav/config/navigate_w_recovery_and_replanning_only_if_path_becomes_invalid.xml
+    # default_nav_through_poses_bt_xml: replace/with/path/to/bt.xml # or $(find-pkg-share my_package)/behavior_tree/my_nav_through_poses_bt.xml
     # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
     # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
     # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
@@ -103,20 +105,21 @@ bt_navigator:
 
 bt_navigator_navigate_through_poses_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 controller_server:
   ros__parameters:
-    use_sim_time: True
-    controller_frequency: 20.0
-    min_x_velocity_threshold: 0.001
+    use_sim_time: False
+    controller_frequency: 10.0
+    min_x_velocity_threshold: 0.005
     min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.005
     failure_tolerance: 0.3
+    odom_topic: ackermann_steering_controller/odometry #"/odometry/filtered"
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["general_goal_checker"] # "precise_goal_checker"
     controller_plugins: ["FollowPath"]
@@ -124,7 +127,7 @@ controller_server:
     # Progress checker parameters
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
+      required_movement_radius: 0.48
       movement_time_allowance: 10.0
     # Goal checker parameters
     #precise_goal_checker:
@@ -141,27 +144,28 @@ controller_server:
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
       time_steps: 56
-      model_dt: 0.05
+      model_dt: 0.1
       batch_size: 2000
-      vx_std: 0.2
-      vy_std: 0.2
-      wz_std: 0.4
-      vx_max: 0.5
-      vx_min: -0.35
-      vy_max: 0.5
-      wz_max: 1.9
+      vx_std: 0.1
+      vy_std: 0.0
+      wz_std: 0.3
+      vx_max: 0.6
+      vx_min: -0.3
+      vy_max: 0.0
+      wz_max: 2.22
+      wz_min: -2.22
       iteration_count: 1
       prune_distance: 1.7
       transform_tolerance: 0.1
       temperature: 0.3
       gamma: 0.015
       motion_model: "Ackermann"
-      visualize: false
+      visualize: true
       TrajectoryVisualizer:
         trajectory_step: 5
         time_step: 3
       AckermannConstraints:
-        min_turning_r: 0.45
+        min_turning_r: 0.6
       critics:
         [
           "ConstraintCritic",
@@ -234,11 +238,12 @@ controller_server:
         threshold_to_consider: 0.5
         max_angle_to_furthest: 1.0
         forward_preference: true
+        mode: 2
       # VelocityDeadbandCritic:
       #   enabled: true
       #   cost_power: 1
       #   cost_weight: 35.0
-      #   deadband_velocities: [0.05, 0.05, 0.05]
+      #   deadband_velocities: [0.1, 0.0, 0.05]
       # TwirlingCritic:
       #   enabled: true
       #   twirling_cost_power: 1
@@ -251,18 +256,18 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_link
-      use_sim_time: True
+      use_sim_time: False
       rolling_window: true
       width: 3
       height: 3
       resolution: 0.05
-      footprint: "[ [0.135, 0.10], [0.135, -0.10], [-0.135, -0.10], [-0.135, 0.10] ]"
+      footprint: "[ [0.3, 0.10], [0.3, -0.10], [-0.048, -0.10], [-0.048, 0.10] ]"
       #robot_radius: 0.22
-      plugins: ["voxel_layer", "inflation_layer"]
+      plugins: ["voxel_layer", "obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        cost_scaling_factor: 4.0
+        inflation_radius: 0.2
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -272,6 +277,21 @@ local_costmap:
         z_voxels: 16
         max_obstacle_height: 2.0
         mark_threshold: 0
+        observation_sources: pointcloud
+        pointcloud:
+          topic: /camera/camera/depth/color/points
+          max_obstacle_height: 0.27
+          min_obstacle_height: 0.015
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
         observation_sources: scan
         scan:
           topic: /scan
@@ -295,10 +315,10 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: True
-      footprint: "[ [0.135, 0.10], [0.135, -0.10], [-0.135, -0.10], [-0.135, 0.10] ]"
+      use_sim_time: False
+      footprint: "[ [0.222, 0.10], [0.222, -0.10], [-0.048, -0.10], [-0.048, 0.10] ]"
       #robot_radius: 0.22
-      resolution: 0.05
+      resolution: 0.1
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
@@ -321,19 +341,23 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        inflation_radius: 0.15
       always_send_full_costmap: True
 
 map_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
+    track_unknown_space: true
+    frame_id: map
+    topic_name: /map
+    use_maximum: false
     # Overridden in launch by the "map" launch configuration or provided default value.
     # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
     yaml_filename: ""
 
 map_saver:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
@@ -341,11 +365,11 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 20.0
-    use_sim_time: True
+    expected_planner_frequency: 10.0
+    use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: "nav2_smac_planner::SmacPlannerHybrid"
+      plugin: "nav2_smac_planner/SmacPlannerHybrid"
       tolerance: 0.5 # tolerance for planning if unable to reach exact pose, in meters
       downsample_costmap: false # whether or not to downsample the map
       downsampling_factor: 1 # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
@@ -354,15 +378,15 @@ planner_server:
       max_on_approach_iterations: 1000 # maximum number of iterations to attempt to reach goal once in tolerance
       terminal_checking_interval: 5000 # number of iterations between checking if the goal has been cancelled or planner timed out
       max_planning_time: 3.5 # max time in s for planner to plan, smooth, and upsample. Will scale maximum smoothing and upsampling times based on remaining time after planning.
-      motion_model_for_search: "DUBIN" # For Hybrid Dubin, Reeds-Shepp
+      motion_model_for_search: "REEDS_SHEPP" # For Hybrid Dubin, Reeds-Shepp
       cost_travel_multiplier: 2.0 # For 2D: Cost multiplier to apply to search to steer away from high cost areas. Larger values will place in the center of aisles more exactly (if non-`FREE` cost potential field exists) but take slightly longer to compute. To optimize for speed, a value of 1.0 is reasonable. A reasonable tradeoff value is 2.0. A value of 0.0 effective disables steering away from obstacles and acts like a naive binary search A*.
       angle_quantization_bins: 64 # For Hybrid nodes: Number of angle bins for search, must be 1 for 2D node (no angle search)
       analytic_expansion_ratio: 3.5 # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 3.0 # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting (in meters). This should be scaled with minimum turning radius and be no less than 4-5x the minimum radius
       analytic_expansion_max_cost: 200 # For Hybrid/Lattice nodes: The maximum single cost for any part of an analytic expansion to contain and be valid (except when necessary on approach to goal)
       analytic_expansion_max_cost_override: false # For Hybrid/Lattice nodes: Whether or not to override the maximum cost setting if within critical distance to goal (ie probably required). If expansion is within 2*pi*min_r of the goal, then it will override the max cost if ``false``.
-      minimum_turning_radius: 0.45 # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
-      reverse_penalty: 2.1 # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
+      minimum_turning_radius: 0.6 # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
+      reverse_penalty: 1.3 # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 0.0 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
       non_straight_penalty: 1.20 # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
       cost_penalty: 2.0 # For Hybrid nodes: penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
@@ -382,7 +406,7 @@ planner_server:
 
 smoother_server:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
     smoother_plugins: ["simple_smoother"]
     simple_smoother:
       plugin: "nav2_smoother::SimpleSmoother"
@@ -401,16 +425,18 @@ behavior_server:
       plugin: "nav2_behaviors/Spin"
     backup:
       plugin: "nav2_behaviors/BackUp"
+      backup_speed: 0.14
     drive_on_heading:
       plugin: "nav2_behaviors/DriveOnHeading"
+      speed: 0.14
     wait:
       plugin: "nav2_behaviors/Wait"
     assisted_teleop:
       plugin: "nav2_behaviors/AssistedTeleop"
     global_frame: odom
     robot_base_frame: base_link
-    transform_tolerance: 0.1
-    use_sim_time: true
+    transform_tolerance: 0.5
+    use_sim_time: False
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.0
     min_rotational_vel: 0.4
@@ -418,12 +444,12 @@ behavior_server:
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: False
 
 waypoint_follower:
   ros__parameters:
-    use_sim_time: True
-    loop_rate: 20
+    use_sim_time: False
+    loop_rate: 10
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:
@@ -433,15 +459,15 @@ waypoint_follower:
 
 velocity_smoother:
   ros__parameters:
-    use_sim_time: True
-    smoothing_frequency: 20.0
+    use_sim_time: False
+    smoothing_frequency: 10.0
     scale_velocities: False
-    feedback: "OPEN_LOOP"
-    max_velocity: [0.26, 0.0, 1.0]
-    min_velocity: [-0.26, 0.0, -1.0]
-    max_accel: [2.5, 0.0, 3.2]
-    max_decel: [-2.5, 0.0, -3.2]
-    odom_topic: "odom"
-    odom_duration: 0.1
-    deadband_velocity: [0.0, 0.0, 0.0]
+    feedback: "CLOSED_LOOP"
+    max_velocity: [0.6, 0.0, 2.22]
+    min_velocity: [-0.3, 0.0, -2.22]
+    max_accel: [0.2, 0.0, 2.0]
+    max_decel: [-0.2, 0.0, -2.0]
+    odom_topic: "ackermann_steering_controller/odometry" #"/odometry/filtered"
+    odom_duration: 0.05
+    deadband_velocity: [0.005, 0.0, 0.0]
     velocity_timeout: 1.0
