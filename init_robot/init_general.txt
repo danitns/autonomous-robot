@@ -49,6 +49,8 @@ sudo systemctl enable xrdp
 sudo systemctl status xrdp
 
 
+https://github.com/IXMATIX/Ixmatix_LSM9DS1_arduino_ros/blob/master/examples/Ixmatix_LSM9DS1_ROS_no_nodehandler/Ixmatix_LSM9DS1_ROS_no_nodehandler.ino
+
 
 
 
