@@ -65,3 +65,7 @@ This project is a ROS 2-based Ackermann-steered autonomous ground vehicle capabl
 ![SLAM Comparation](./assets/slam-overlap.png)
 
 ---
+
+## Useful resources
+
+- Josh Newans tutorials ([github](https://github.com/joshnewans) and [youtube](https://www.youtube.com/@ArticulatedRobotics))
