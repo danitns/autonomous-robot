@@ -9,3 +9,8 @@
 /src/twist_stamper
 /ydlidar_ros2_driver
 /pi-env
+
+.prettierignore
+robot_localization_debug.txt
+
+/masks/
