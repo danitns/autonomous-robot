@@ -4,12 +4,12 @@ ekf_filter_node:
 # The frequency, in Hz, at which the filter will output a position estimate. Note that the filter will not begin
 # computation until it receives at least one message from one of the inputs. It will then run continuously at the
 # frequency specified here, regardless of whether it receives more measurements. Defaults to 30 if unspecified.
-        frequency: 10.0
+        frequency: 15.0
 
 # The period, in seconds, after which we consider a sensor to have timed out. In this event, we carry out a predict
 # cycle on the EKF without correcting it. This parameter can be thought of as the minimum frequency with which the
 # filter will generate new output. Defaults to 1 / frequency if not specified.
-        sensor_timeout: 0.1
+        #sensor_timeout: 0.1
 
 # ekf_localization_node and ukf_localization_node both use a 3D omnidirectional motion model. If this parameter is
 # set to true, no 3D information will be used in your state estimate. Use this if you are operating in a planar
@@ -28,7 +28,7 @@ ekf_filter_node:
 
 # If you're having trouble, try setting this to true, and then echo the /diagnostics_agg topic to see if the node is
 # unhappy with any settings or data.
-        print_diagnostics: true
+        print_diagnostics: false
 
 # Debug settings. Not for the faint of heart. Outputs a ludicrous amount of information to the file specified by
 # debug_out_file. I hope you like matrices! Please note that setting this to true will have strongly deleterious
@@ -90,11 +90,11 @@ ekf_filter_node:
                         false, false, false,
                         true, true, false,
                         false, false, true,
-                        false, false, false]  
+                        false, false, false]
 
 # If you have high-frequency data or are running with a low frequency parameter value, then you may want to increase
 # the size of the subscription queue so that more measurements are fused.
-        odom0_queue_size: 2
+        odom0_queue_size: 10
 
 # [ADVANCED] Large messages in ROS can exhibit strange behavior when they arrive at a high frequency. This is a result
 # of Nagle's algorithm. This option tells the ROS subscriber to use the tcpNoDelay option, which disables Nagle's
@@ -127,18 +127,14 @@ ekf_filter_node:
         odom0_twist_rejection_threshold: 1.0
 
         imu0: imu/data
-        imu0_config: [false, false, false,
-                        false, false, true,
-                        false, false, false,
-                        false, false, true,
-                        true, false, false]  
+        imu0_config: [false, false, false, false, false, true, false, false, false, false, false, true, true, false, false]
         imu0_nodelay: false
         imu0_differential: false
         #imu0_relative: true
-        imu0_queue_size: 5
-        imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
-        imu0_twist_rejection_threshold: 0.8                #
-        imu0_linear_acceleration_rejection_threshold: 0.8  #
+        imu0_queue_size: 10
+        imu0_pose_rejection_threshold: 20.0                 # Note the difference in parameter names
+        imu0_twist_rejection_threshold: 20.0                #
+        imu0_linear_acceleration_rejection_threshold: 20.0  #
 
 # [ADVANCED] Some IMUs automatically remove acceleration due to gravity, and others don't. If yours doesn't, please set
 # this to true, and *make sure* your data conforms to REP-103, specifically, that the data is in ENU frame.
@@ -165,15 +161,15 @@ ekf_filter_node:
 # Which velocities are being controlled. Order is vx, vy, vz, vroll, vpitch, vyaw.
         control_config: [true, false, false, false, false, true]
 # Places limits on how large the acceleration term will be. Should match your robot's kinematics.
-        acceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 3.4]
+        acceleration_limits: [9.0, 0.0, 0.0, 0.0, 0.0, 10.4]
 # Acceleration and deceleration limits are not always the same for robots.
-        deceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 4.5]
+        deceleration_limits: [12.0, 0.0, 0.0, 0.0, 0.0, 10.5]
 # If your robot cannot instantaneously reach its acceleration limit, the permitted change can be controlled with these
 # gains
-        acceleration_gains: [0.8, 0.0, 0.0, 0.0, 0.0, 0.9]
+        acceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 5.9]
 # If your robot cannot instantaneously reach its deceleration limit, the permitted change can be controlled with these
 # gains
-        deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+        deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 5.0]
 # [ADVANCED] The process noise covariance matrix can be difficult to tune, and can vary for each application, so it is
 # exposed as a configuration parameter. This matrix represents the noise we add to the total error after each
 # prediction step. The better the omnidirectional motion model matches your system, the smaller these values can be.

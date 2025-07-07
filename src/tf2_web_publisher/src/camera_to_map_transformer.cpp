@@ -40,10 +40,10 @@ public:
           next_unique_id_(0)
     {
         // parameters
-        this->declare_parameter("merge_distance_threshold", 0.1); // 10cm
+        this->declare_parameter("merge_distance_threshold", 0.2); // 10cm
         this->declare_parameter("max_detection_distance", 10.0);  // 10m
         this->declare_parameter("marker_timeout", 30.0);          // 30 seconds
-        this->declare_parameter("min_detections_for_persistence", 2);
+        this->declare_parameter("min_detections_for_persistence", 10);
         this->declare_parameter("confidence_decay_rate", 0.95);
         this->declare_parameter("min_confidence_threshold", 0.1);
 
@@ -62,7 +62,7 @@ public:
 
         // Publisher: will publish markers in "map"
         map_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-            "/detected_objects/markers", 10);
+            "/detected_objects/markers", 5);
 
         cleanup_timer_ = this->create_wall_timer(
             1s, std::bind(&CameraToMapTransformer::cleanupCallback, this));
@@ -128,7 +128,7 @@ private:
         return "";
     }
 
-    void updateMarkerPosition(const std::string &key, const geometry_msgs::msg::Point &new_point,
+    void updateMarkerPosition(const std::string &key, const geometry_msgs::msg::Pose &new_pose,
                               const rclcpp::Time &timestamp)
     {
         auto &persistent_marker = persistent_markers_[key];
@@ -137,11 +137,13 @@ private:
         double weight = 1.0 / (persistent_marker.detection_count + 1);
 
         persistent_marker.marker.pose.position.x =
-            (1.0 - weight) * persistent_marker.marker.pose.position.x + weight * new_point.x;
+            (1.0 - weight) * persistent_marker.marker.pose.position.x + weight * new_pose.position.x;
         persistent_marker.marker.pose.position.y =
-            (1.0 - weight) * persistent_marker.marker.pose.position.y + weight * new_point.y;
+            (1.0 - weight) * persistent_marker.marker.pose.position.y + weight * new_pose.position.y;
         persistent_marker.marker.pose.position.z =
-            (1.0 - weight) * persistent_marker.marker.pose.position.z + weight * new_point.z;
+            (1.0 - weight) * persistent_marker.marker.pose.position.z + weight * new_pose.position.z;
+
+        persistent_marker.marker.pose.orientation = new_pose.orientation;
 
         persistent_marker.last_seen = timestamp;
         persistent_marker.detection_count++;
@@ -152,7 +154,7 @@ private:
     }
 
     void addNewMarker(const visualization_msgs::msg::Marker &original_marker,
-                      const geometry_msgs::msg::Point &map_point,
+                      const geometry_msgs::msg::Pose &map_pose,
                       const rclcpp::Time &timestamp)
     {
         std::string key = original_marker.ns + "_" + std::to_string(next_unique_id_++);
@@ -163,7 +165,7 @@ private:
         persistent_marker.marker.header.stamp = timestamp;
         persistent_marker.marker.ns = original_marker.ns;
         persistent_marker.marker.id = next_unique_id_ - 1;
-        persistent_marker.marker.pose.position = map_point;
+        persistent_marker.marker.pose = map_pose;
         persistent_marker.last_seen = timestamp;
         persistent_marker.detection_count = 1;
         persistent_marker.confidence_score = 0.5; // Start with medium confidence
@@ -187,8 +189,8 @@ private:
             // Check for timeout or low confidence
             double time_since_last_seen = (now - persistent_marker.last_seen).seconds();
 
-            if (time_since_last_seen > marker_timeout_ ||
-                persistent_marker.confidence_score < min_confidence_)
+            if (persistent_marker.detection_count < 50 && (time_since_last_seen > marker_timeout_ ||
+                                                           persistent_marker.confidence_score < min_confidence_))
             {
                 keys_to_remove.push_back(key);
             }
@@ -272,37 +274,34 @@ private:
                 continue;
             }
 
-            // Build a PointStamped from the raw Marker's pose.position
-            geometry_msgs::msg::PointStamped pt_cam;
-            pt_cam.header = m.header; // frame_id="camera_link", stamp = detection time
-            pt_cam.point = m.pose.position;
+            // build a PointStamped from the raw marker s pose.position
+            geometry_msgs::msg::PoseStamped pose_cam;
+            pose_cam.header = m.header; // frame_id="camera_link", stamp = detection time
+            pose_cam.pose = m.pose;
 
-            // Try to transform from "camera_link" -> "map"
+            // transform from "camera_link" -> "map"
             try
             {
-                // Wait up to 0.1s for the transform to become available
                 if (tf_buffer_.canTransform(
                         "map",
-                        pt_cam.header.frame_id, // should be "camera_link"
-                        pt_cam.header.stamp,
-                        rclcpp::Duration(0, 100000000))) // 0.1 seconds
+                        pose_cam.header.frame_id,
+                        pose_cam.header.stamp,
+                        rclcpp::Duration(0, 100000000)))
                 {
-                    // Actually do the transform
-                    geometry_msgs::msg::PointStamped pt_map;
-                    tf_buffer_.transform(pt_cam, pt_map, "map");
+                    geometry_msgs::msg::PoseStamped pose_map;
+                    tf_buffer_.transform(pose_cam, pose_map, "map");
 
-                    // Check if this detection is near an existing marker
-                    std::string nearby_key = findNearbyMarker(pt_map.point, m.ns);
+                    std::string nearby_key = findNearbyMarker(pose_map.pose.position, m.ns);
 
                     if (!nearby_key.empty())
                     {
-                        // Update existing marker
-                        updateMarkerPosition(nearby_key, pt_map.point, callback_time);
+                        // update existing marker
+                        updateMarkerPosition(nearby_key, pose_map.pose, callback_time);
                     }
                     else
                     {
-                        // Add new marker
-                        addNewMarker(m, pt_map.point, callback_time);
+                        // add new marker
+                        addNewMarker(m, pose_map.pose, callback_time);
                     }
                 }
                 else
@@ -310,11 +309,11 @@ private:
                     RCLCPP_WARN_THROTTLE(
                         this->get_logger(),
                         *this->get_clock(),
-                        2000, // milliseconds between identical logs
+                        2000,
                         "TF not yet available for %s at stamp %u.%u",
-                        pt_cam.header.frame_id.c_str(),
-                        pt_cam.header.stamp.sec,
-                        pt_cam.header.stamp.nanosec);
+                        pose_cam.header.frame_id.c_str(),
+                        pose_cam.header.stamp.sec,
+                        pose_cam.header.stamp.nanosec);
                 }
             }
             catch (const tf2::TransformException &ex)
